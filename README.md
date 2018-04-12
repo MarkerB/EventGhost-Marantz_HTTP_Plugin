@@ -8,3 +8,5 @@ Using HTTP allows multiple controllers to access the receiver at the same time, 
 If you're simply an end-user, just download and double-click on Marantz HTTP-0.1.egplugin, which will immediately install the plugin into EventGhost.  You'll have to provide the IP address of your receiver, add the plugin to your EventGhost project, and then add Marantz HTTP actions.
 
 You can see all the supported telnet commands at: http://us.marantz.com/DocumentMaster/US/Marantz_AV_SR_NR_PROTOCOL_V01.xls
+
+Developers might add new built-in commands, maybe some better error detection, and even communications from the receiver back to EventGhost.
