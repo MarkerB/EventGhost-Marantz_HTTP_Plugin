@@ -9,8 +9,10 @@
 #
 #===============================================================================
 
-import eg, sys, urllib
+import eg, sys, urllib, time
 import new
+import xml.dom.minidom
+from xml.dom.minidom import parse
 
 eg.RegisterPlugin(
     name = "Marantz HTTP",
@@ -179,6 +181,16 @@ class SendCommandText(eg.ActionBase):
             panel.SetResult(cmdCtrl.GetValue())
 
 
+''' Sends a status request command to the receiver. '''
+class GetStatus(eg.ActionBase):
+    name='Get Status'
+    description='Send a status request, general events on results'
+
+    def __call__(self):
+        print 'Sending status request'
+        return self.plugin.getStatusRaw()
+
+
 ''' The EventGhost plugin class. '''
 class MarantzHTTPPlugin(eg.PluginBase):
 
@@ -189,7 +201,10 @@ class MarantzHTTPPlugin(eg.PluginBase):
     timeout=None
     maxDb=12
     disabled=True
-
+    urlHandle=None
+    lastVolume=None
+    lastInput=None
+    lastSurround=None
 
     def __init__(self):
         for groupname, list in commandsList:
@@ -204,6 +219,7 @@ class MarantzHTTPPlugin(eg.PluginBase):
         group = self.AddGroup('Volume')
         group.AddAction(SetVolumeAbsolute)
         self.AddAction(SendCommandText)
+        self.AddAction(GetStatus)
 
     def __start__(self, host, port, timeout, maxDb):
         self.host=host
@@ -259,7 +275,32 @@ class MarantzHTTPPlugin(eg.PluginBase):
         if (self.disabled == True):
             return
 
-        urllib.urlopen('http://' + self.host + ':' + str(self.port) + '/goform/formiPhoneAppDirect.xml?' + cmd)
+        self.urlHandle = urllib.urlopen('http://' + self.host + ':' + str(self.port) + '/goform/formiPhoneAppDirect.xml?' + cmd)
+
+    def getStatusRaw(self):            # request status and send volume, input, and surround mode as EV events
+        if (self.disabled == True):
+            return
+        self.urlHandle = urllib.urlopen('http://' + self.host + ':' + str(self.port) + '/goform/formMainZone_MainZoneXml.xml?_=' + format(time.clock()))
+        dom = parse (self.urlHandle)
+        # <MasterVolume><value>-45.5</value></MasterVolume>
+        volume = dom.getElementsByTagName('MasterVolume')[0].getElementsByTagName('value')[0].firstChild.data
+        if (volume is not None):
+            if (volume != self.lastVolume):
+                eg.TriggerEvent('MarantzHTTP.Volume', payload=volume)	# trigger an event with the volume as a payload
+                self.lastVolume = volume
+        # <InputFuncSelect><value>Blu-ray</value></InputFuncSelect>
+        input = dom.getElementsByTagName('InputFuncSelect')[0].getElementsByTagName('value')[0].firstChild.data
+        if (input is not None):
+            if (input != self.lastInput):
+                eg.TriggerEvent('MarantzHTTP.Input', payload=input)		# trigger an event with the input as a payload
+                self.lastInput = input
+        # <selectSurround><value>Multi Ch Stereo                </value></selectSurround>
+        surround = dom.getElementsByTagName('selectSurround')[0].getElementsByTagName('value')[0].firstChild.data
+        if (surround is not None):
+            surround = surround.strip()
+            if (surround != self.lastSurround):
+                eg.TriggerEvent('MarantzHTTP.Surround', payload=surround)	# trigger an event with the surround mode as a payload
+                self.lastSurround = surround
 
     def setVolumeAbsolute(self, percentage):
         if (self.disabled == True):
@@ -291,3 +332,50 @@ class MarantzHTTPPlugin(eg.PluginBase):
                 timeoutCtrl.GetValue(),
                 maxDbCtrl.GetValue()
             )
+
+# Response from a get status HTTP request of /goform/formMainZone_MainZoneXml.xml
+#    <?xml version="1.0" encoding="utf-8" ?>
+#    <item>
+#    <FriendlyName><value>Marantz SR6011</value></FriendlyName>
+#    <Power><value>ON</value></Power>
+#    <ZonePower><value>ON</value></ZonePower>
+#    <RCSourceSelect><value>POS</value></RCSourceSelect>
+#    <RenameZone><value>MAIN ZONE 
+#    </value></RenameZone>
+#    <TopMenuLink><value>ON</value></TopMenuLink>
+#    <VideoSelectDisp><value>OFF</value></VideoSelectDisp>
+#    <VideoSelect><value></value></VideoSelect>
+#    <VideoSelectOnOff><value>OFF</value></VideoSelectOnOff>
+#    <VideoSelectLists>
+#    <value index='ON' >On</value>
+#    <value index='OFF' >Off</value>
+#    <value index='SAT/CBL'>CBL/SAT     </value>
+#    <value index='DVD'>DVD         </value>
+#    <value index='BD'>Blu-ray     </value>
+#    <value index='GAME'>Game        </value>
+#    <value index='AUX1'>AUX1        </value>
+#    <value index='AUX2'>AUX2        </value>
+#    <value index='MPLAY'>Media Player</value>
+#    </VideoSelectLists>
+#    <ECOModeDisp><value>ON</value></ECOModeDisp>
+#    <ECOMode><value>OFF</value></ECOMode>
+#    <ECOModeLists>
+#    <value index='ON'  table='ECO : ON' param=''/>
+#    <value index='OFF'  table='ECO : OFF' param=''/>
+#    <value index='AUTO'  table='ECO : AUTO' param=''/>
+#    </ECOModeLists>
+#    <AddSourceDisplay><value>FALSE</value></AddSourceDisplay>
+#    <ModelId><value>10</value></ModelId>
+#    <BrandId><value>MARANTZ_MODEL</value></BrandId>
+#    <SalesArea><value>0</value></SalesArea>
+#    <InputFuncSelect><value>Blu-ray</value></InputFuncSelect>
+#    <NetFuncSelect><value>FAVORITES</value></NetFuncSelect>
+#    <selectSurround><value>Multi Ch Stereo                </value></selectSurround>
+#    <VolumeDisplay><value>Relative</value></VolumeDisplay>
+#    <MasterVolume><value>-45.5</value></MasterVolume>
+#    <Mute><value>off</value></Mute>
+#    <RemoteMaintenance><value></value></RemoteMaintenance>
+#    <SubwooferDisplay><value>FALSE</value></SubwooferDisplay>
+#    <Zone2VolDisp><value>TRUE</value></Zone2VolDisp>
+#    <SleepOff><value>Off</value></SleepOff>
+#    </item>
