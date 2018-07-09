@@ -7,7 +7,9 @@ Using HTTP allows multiple controllers to access the receiver at the same time, 
 
 END-USERS:
 
-Just download and double-click on Marantz HTTP-0.1.egplugin, which will immediately install the plugin into EventGhost.  You'll have to provide the IP address of your receiver, add the plugin to your EventGhost project, and then add Marantz TCP/telnet actions like "MVUP" for volume up, and "SIBD" for selecting Blu-ray input. There are also some built-in actions that don't require using command codes, and the volume one lets you specify volume with more intuitive values.
+Just download and double-click on the latest Marantz HTTP-x.x.x.egplugin, which will immediately install the plugin into EventGhost.  You'll have to provide the IP address of your receiver, add the plugin to your EventGhost project, and then add Marantz TCP/telnet actions like "MVUP" for volume up, and "SIBD" for selecting Blu-ray input. There are also some built-in actions that don't require using command codes, and the volume one lets you specify volume with more intuitive values.
+
+You can also add an EventGhost "Action" called "Get Status" which will generate events for changes in the status of four parameters. The event names are Main.MarantzHTTP.Volume, Main.MarantzHTTP.Mute, Main.MarantzHTTP.Input, and Main.MarantzHTTP.Surround  These return any changed status in the "eg.event.payload" variable.
 
 You can see all the supported TCP/telnet commands at: http://us.marantz.com/DocumentMaster/US/Marantz_AV_SR_NR_PROTOCOL_V01.xls
 
