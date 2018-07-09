@@ -203,6 +203,7 @@ class MarantzHTTPPlugin(eg.PluginBase):
     disabled=True
     urlHandle=None
     lastVolume=None
+    lastMute=None
     lastInput=None
     lastSurround=None
 
@@ -288,6 +289,12 @@ class MarantzHTTPPlugin(eg.PluginBase):
             if (volume != self.lastVolume):
                 eg.TriggerEvent('MarantzHTTP.Volume', payload=volume)	# trigger an event with the volume as a payload
                 self.lastVolume = volume
+        # <Mute><value>off</value></Mute>
+        mute = dom.getElementsByTagName('Mute')[0].getElementsByTagName('value')[0].firstChild.data
+        if (mute is not None):
+            if (mute != self.lastMute):
+                eg.TriggerEvent('MarantzHTTP.Mute', payload=mute)	# trigger an event with the mute status as a payload
+                self.lastMute = mute
         # <InputFuncSelect><value>Blu-ray</value></InputFuncSelect>
         input = dom.getElementsByTagName('InputFuncSelect')[0].getElementsByTagName('value')[0].firstChild.data
         if (input is not None):
